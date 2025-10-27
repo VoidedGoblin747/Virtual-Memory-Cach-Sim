@@ -125,8 +125,28 @@ void parse_args(int argc, char **argv, Config *cfg){
 }
 
 // Computing values
-void compute_values(Config *cfg, Calculations *calc){
-    // TODO: implement calcs requirments for milestone 1
+// Computing values
+void compute_values(Config *cfg, Calculations *calc) {
+    unsigned long long cache_bytes = cfg->cache_kb * 1024;
+    unsigned long long physical_bytes = cfg->physical_memory_mb * 1024 * 1024;
+    unsigned long long page_size = 4096;
+
+    // Cache calculations
+    calc->total_blocks = cache_bytes / cfg->block_size;
+    calc->rows = calc->total_blocks / cfg->associativity;
+    calc->index_bits = (int)log2(calc->rows);
+    int offset_bits = (int)log2(cfg->block_size);
+    calc->tag_bits = 32 - calc->index_bits - offset_bits;
+
+    calc->overhead_bytes = (calc->total_blocks * (1 + calc->tag_bits)) / 8;
+    calc->implementation_kb = (cache_bytes + calc->overhead_bytes) / 1024.0;
+    calc->cost = calc->implementation_kb * 0.07;
+
+    // Physical memory calculations
+    calc->num_physical_pages = physical_bytes / page_size;
+    calc->num_system_pages = (unsigned long long)(calc->num_physical_pages * (cfg->os_used_percentage / 100.0));
+    calc->pte_bits = 1 + (int)log2(calc->num_physical_pages);
+    calc->total_pt_ram_bytes = (512 * 1024 * calc->pte_bits / 8) * cfg->trace_count;
 }
 
 // Printing per the requirments
